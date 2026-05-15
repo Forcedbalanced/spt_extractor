@@ -177,10 +177,12 @@ def process_spt_ppn(pdf_path):
             r["tanggal_lapor"] = f"{m.group(1)} {m.group(2)} {m.group(3)}"
 
     # ── SECTION I: PENYERAHAN ─────────────────────────────────────────────────
-    # Items 1–9 are numbered lines; grab numbers by position
+    # Items 1–9 are numbered lines; grab numbers by position.
+    # Items 7-9 start with "Penyerahan yang mendapat fasilitas", so match
+    # any numbered line starting with "Ekspor" or "Penyerahan".
     item_lines = {}
     for line in lines:
-        m = re.match(r'^\s*(\d+)\.\s+(Ekspor BKP|Penyerahan yang PPN)', line)
+        m = re.match(r'^\s*([1-9])\.\s+(Ekspor|Penyerahan)', line, re.IGNORECASE)
         if m:
             item_lines[int(m.group(1))] = line
 
@@ -256,14 +258,29 @@ def process_spt_ppn(pdf_path):
 
     for line in lines:
         if re.search(r'Jumlah \(I\.A\.1 \+ I\.A\.2', line, re.IGNORECASE):
-            # Strip the label part including the parenthesised formula
             after = re.sub(r'^.*?\)', '', line)
             ns = numbers_on_line(after)
             r["ia_jumlah_harga_jual"] = pick(ns, 0, 0)
-            r["ia_jumlah_dpp"]        = pick(ns, 1, 0)
-            r["ia_jumlah_ppn"]        = pick(ns, 2, 0)
-            r["ia_jumlah_ppnbm"]      = pick(ns, 3, 0)
+            if len(ns) >= 4:
+                # All 4 columns present: harga_jual, dpp, ppn, ppnbm
+                r["ia_jumlah_dpp"]   = pick(ns, 1, 0)
+                r["ia_jumlah_ppn"]   = pick(ns, 2, 0)
+                r["ia_jumlah_ppnbm"] = pick(ns, 3, 0)
+            else:
+                # pdfplumber drops the DPP column on this row; 3 values are
+                # harga_jual, ppn, ppnbm — compute dpp from individual items below
+                r["ia_jumlah_dpp"]   = None
+                r["ia_jumlah_ppn"]   = pick(ns, 1, 0)
+                r["ia_jumlah_ppnbm"] = pick(ns, 2, 0)
             break
+
+    # If DPP Jumlah I.A was not extractable from the row, derive it from items
+    if r["ia_jumlah_dpp"] is None:
+        dpp_items = [
+            r["ia2_dpp_nilai_lain"], r["ia3_dpp"], r["ia4_dpp"],
+            r["ia5_dpp"], r["ia6_dpp"], r["ia7_dpp"], r["ia8_dpp"], r["ia9_dpp"],
+        ]
+        r["ia_jumlah_dpp"] = sum(v for v in dpp_items if v is not None)
 
     for line in lines:
         if re.search(r'Penyerahan barang.jasa yang tidak terutang PPN', line, re.IGNORECASE):
@@ -307,9 +324,11 @@ def process_spt_ppn(pdf_path):
         elif re.search(r'Kompensasi kelebihan Pajak Masukan', line, re.IGNORECASE):
             r["iie_kompensasi"] = last_number(line) or 0
 
-        elif re.search(r'Hasil penghitungan kembali Pajak Masukan', line, re.IGNORECASE):
-            after = re.sub(r'^[A-Z]\.\s+', '', line.strip())
-            r["iif_penghitungan_kembali"] = last_number(after) or 0
+        elif re.search(r'Hasil penghitungan kembali Pajak Masukan', line, re.IGNORECASE) and not re.match(r'^\s*\d+\.', line):
+            # Exclude Section IX numbered list items (e.g. "2. Hasil Penghitungan...")
+            # which match the same words but hold only the item number as a value.
+            v = last_number(line)
+            r["iif_penghitungan_kembali"] = v if v is not None else 0
 
         elif re.search(r'Jumlah Pajak Masukan yang dapat diperhitungkan', line, re.IGNORECASE):
             after = re.sub(r'^.*?\)', '', line)
@@ -592,23 +611,30 @@ def export_to_excel(results, output_path):
 
 # ── CLI ────────────────────────────────────────────────────────────────────────
 
-if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage:")
-        print("  Single : python3 ppn_extractor.py <file.pdf> [--output out.xlsx]")
-        print("  Bulk   : python3 ppn_extractor.py <folder>   [--output out.xlsx]")
-        sys.exit(1)
+_DEFAULT_FOLDER = "PPN"
 
-    target = Path(sys.argv[1])
+if __name__ == "__main__":
+    args = sys.argv[1:]
+
     output_xlsx = None
-    if "--output" in sys.argv:
-        idx = sys.argv.index("--output")
-        if idx + 1 < len(sys.argv):
-            output_xlsx = Path(sys.argv[idx + 1])
+    if "--output" in args:
+        idx = args.index("--output")
+        if idx + 1 < len(args):
+            output_xlsx = Path(args[idx + 1])
+        args = [a for i, a in enumerate(args) if i != idx and i != idx + 1]
+
+    # Auto-detect PDF folder when no positional argument is given
+    if not args:
+        target = Path(_DEFAULT_FOLDER)
+        if not target.is_dir():
+            print(f"Error: default folder '{_DEFAULT_FOLDER}' not found. Pass a folder or file path.")
+            sys.exit(1)
+    else:
+        target = Path(args[0])
 
     if target.is_dir():
         if output_xlsx is None:
-            output_xlsx = target / "hasil_ekstraksi_ppn.xlsx"
+            output_xlsx = Path("hasil_ekstraksi_ppn.xlsx")  # project root
         results = process_folder(target)
         if results:
             export_to_excel(results, output_xlsx)
@@ -621,4 +647,8 @@ if __name__ == "__main__":
                 print(f"{k}: {v}")
     else:
         print(f"Error: '{target}' not found.")
+        print(f"Usage:")
+        print(f"  No args : python ppn_extractor.py              (uses ./{_DEFAULT_FOLDER}/)")
+        print(f"  Folder  : python ppn_extractor.py <folder>   [--output out.xlsx]")
+        print(f"  Single  : python ppn_extractor.py <file.pdf> [--output out.xlsx]")
         sys.exit(1)

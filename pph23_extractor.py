@@ -614,23 +614,30 @@ def export_to_excel(results, output_path):
     print(f"Exported: {output_path}  ({len(results)} rows, {len(SCHEMA)} kolom)")
 # ── CLI ────────────────────────────────────────────────────────────────────────
 
-if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage:")
-        print("  Single : python3 pph23_extractor.py <file.pdf> [--output out.xlsx]")
-        print("  Bulk   : python3 pph23_extractor.py <folder>   [--output out.xlsx]")
-        sys.exit(1)
+_DEFAULT_FOLDER = "PPH_23"
 
-    target = Path(sys.argv[1])
+if __name__ == "__main__":
+    args = sys.argv[1:]
+
     output_xlsx = None
-    if "--output" in sys.argv:
-        idx = sys.argv.index("--output")
-        if idx + 1 < len(sys.argv):
-            output_xlsx = Path(sys.argv[idx + 1])
+    if "--output" in args:
+        idx = args.index("--output")
+        if idx + 1 < len(args):
+            output_xlsx = Path(args[idx + 1])
+        args = [a for i, a in enumerate(args) if i != idx and i != idx + 1]
+
+    # Auto-detect PDF folder when no positional argument is given
+    if not args:
+        target = Path(_DEFAULT_FOLDER)
+        if not target.is_dir():
+            print(f"Error: default folder '{_DEFAULT_FOLDER}' not found. Pass a folder or file path.")
+            sys.exit(1)
+    else:
+        target = Path(args[0])
 
     if target.is_dir():
         if output_xlsx is None:
-            output_xlsx = target / "hasil_ekstraksi_pph23.xlsx"
+            output_xlsx = Path("hasil_ekstraksi_pph23.xlsx")  # project root
         results = process_folder(target)
         if results:
             export_to_excel(results, output_xlsx)
@@ -643,5 +650,9 @@ if __name__ == "__main__":
                 print(f"{k}: {v}")
     else:
         print(f"Error: '{target}' not found.")
+        print(f"Usage:")
+        print(f"  No args : python pph23_extractor.py              (uses ./{_DEFAULT_FOLDER}/)")
+        print(f"  Folder  : python pph23_extractor.py <folder>   [--output out.xlsx]")
+        print(f"  Single  : python pph23_extractor.py <file.pdf> [--output out.xlsx]")
         sys.exit(1)
         
