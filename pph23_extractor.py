@@ -459,6 +459,10 @@ for _leaf, _key in zip(_KJS_LEAVES, ["kjs_411127_110_pemotongan","kjs_411127_110
 for _leaf, _key in zip(_TOTAL_LEAVES, ["pph26_setor_sendiri","pph26_pemotongan","pph26_ditanggung_pemerintah","pph26_harus_disetor","pph26_telah_disetor","pph26_kurang_lebih_setor"]):
     SCHEMA.append(("PPh Pasal 26", "Total", _leaf, _key, True))
 
+# Total Pajak Penghasilan
+for _leaf, _key in zip(_TOTAL_LEAVES[:5], ["total_setor_sendiri","total_pemotongan","total_ditanggung_pemerintah","total_harus_disetor","total_telah_disetor"]):
+    SCHEMA.append(("TOTAL", None, _leaf, _key, True))
+
 # OTHERS
 for _lbl, _key in [
     ("Nama Penandatangan", "penandatangan_nama"),

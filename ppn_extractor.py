@@ -274,10 +274,11 @@ def process_spt_ppn(pdf_path):
                 r["ia_jumlah_ppnbm"] = pick(ns, 2, 0)
             break
 
-    # If DPP Jumlah I.A was not extractable from the row, derive it from items
+    # If DPP Jumlah I.A was not extractable from the row, derive it from items.
+    # Row 1 (Ekspor) has no DPP column, so excluded from this sum.
     if r["ia_jumlah_dpp"] is None:
         dpp_items = [
-            r["ia2_dpp_nilai_lain"], r["ia3_dpp"], r["ia4_dpp"],
+            r["ia2_harga_jual"], r["ia3_dpp"], r["ia4_dpp"],
             r["ia5_dpp"], r["ia6_dpp"], r["ia7_dpp"], r["ia8_dpp"], r["ia9_dpp"],
         ]
         r["ia_jumlah_dpp"] = sum(v for v in dpp_items if v is not None)
@@ -477,8 +478,8 @@ COLUMNS = [
     ("Nama PKP",                    "nama_pkp",                 False),
     ("NPWP",                        "npwp",                     False),
     # Section I (cols 6-16)
-    ("I.A.2 Harga Jual",            "ia2_harga_jual",           True),
-    ("I.A.2 DPP",                   "ia2_dpp_nilai_lain",       True),
+    ("I.A.1 Ekspor BKP/JKP",        "ia1_ekspor_dpp",           True),
+    ("I.A.2 DPP",                   "ia2_harga_jual",           True),
     ("I.A.2 PPN",                   "ia2_ppn",                  True),
     ("I.A.3 DPP",                   "ia3_dpp",                  True),
     ("I.A.3 PPN",                   "ia3_ppn",                  True),
@@ -489,7 +490,7 @@ COLUMNS = [
     ("Jumlah I.A PPN",              "ia_jumlah_ppn",            True),
     ("Total Penyerahan (I.C)",      "ic_jumlah_penyerahan",     True),
     # Section II (cols 15-19)
-    ("II.B DPP",                    "iib_dpp_nilai_lain",       True),
+    ("II.B DPP",                    "iib_harga_jual",           True),
     ("II.B PPN",                    "iib_ppn",                  True),
     ("II.G DPP",                    "iig_jumlah_dpp",           True),
     ("II.G PPN (Pajak Masukan)",    "iig_jumlah_ppn",           True),
