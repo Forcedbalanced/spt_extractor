@@ -27,6 +27,7 @@ def parse_amount(text):
     except ValueError:
         return None
 
+
 def last_number(line):
     """Return the last parseable number on a line, or None."""
     nums = re.findall(r'-?[\d\.]+(?:,\d+)?', line)
@@ -35,6 +36,7 @@ def last_number(line):
         if v is not None:
             return v
     return None
+
 
 def numbers_on_line(line, min_val=0):
     nums = re.findall(r'-?[\d\.]+(?:,\d+)?', line)
@@ -159,7 +161,11 @@ def process_spt_ppn(pdf_path):
 
     # ── HEADER ────────────────────────────────────────────────────────────────
     for line in lines:
-        m = re.search(r'(Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)\s+(\d{4})\s+\d+\s+s\.d\s+\d+\s+(NORMAL|PEMBETULAN(?:\s+KE-\d+)?)', line, re.IGNORECASE)
+        m = re.search(
+            r'(Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September'
+            r'|Oktober|November|Desember)\s+(\d{4})\s+\d+\s+s\.d\s+\d+\s+'
+            r'(NORMAL|PEMBETULAN(?:\s+KE-\d+)?)',
+            line, re.IGNORECASE)
         if m:
             r["masa_pajak"] = f"{m.group(1)} {m.group(2)}"
             r["normal_pembetulan"] = m.group(3).strip()
@@ -172,7 +178,10 @@ def process_spt_ppn(pdf_path):
         if m:
             r["npwp"] = m.group(1).strip()
 
-        m = re.search(r',\s*(\d{1,2})\s+(Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)\s+(\d{4})\s*$', line, re.IGNORECASE)
+        m = re.search(
+            r',\s*(\d{1,2})\s+(Januari|Februari|Maret|April|Mei|Juni|Juli'
+            r'|Agustus|September|Oktober|November|Desember)\s+(\d{4})\s*$',
+            line, re.IGNORECASE)
         if m and r["tanggal_lapor"] is None:
             r["tanggal_lapor"] = f"{m.group(1)} {m.group(2)} {m.group(3)}"
 
@@ -201,59 +210,59 @@ def process_spt_ppn(pdf_path):
     # I.A.2 — Harga Jual | DPP Nilai Lain | PPN | PPnBM
     if 2 in item_lines:
         ns = numbers_on_line(strip_item_num(item_lines[2]))
-        r["ia2_harga_jual"]     = pick(ns, 0, 0)
+        r["ia2_harga_jual"] = pick(ns, 0, 0)
         r["ia2_dpp_nilai_lain"] = pick(ns, 1, pick(ns, 0, 0))
-        r["ia2_ppn"]            = pick(ns, 2, pick(ns, 1, 0))
-        r["ia2_ppnbm"]          = pick(ns, 3, 0)
+        r["ia2_ppn"] = pick(ns, 2, pick(ns, 1, 0))
+        r["ia2_ppnbm"] = pick(ns, 3, 0)
 
     # I.A.3 — Harga Jual | DPP | PPN | PPnBM
     if 3 in item_lines:
         ns = numbers_on_line(strip_item_num(item_lines[3]))
-        r["ia3_dpp"]   = pick(ns, 0, 0)
-        r["ia3_ppn"]   = pick(ns, 1, 0)   # actually index 2 but 0-cols collapse when 0
+        r["ia3_dpp"] = pick(ns, 0, 0)
+        r["ia3_ppn"] = pick(ns, 1, 0)   # actually index 2 but 0-cols collapse when 0
         r["ia3_ppnbm"] = pick(ns, 3, 0)
 
     # I.A.4
     if 4 in item_lines:
         ns = numbers_on_line(strip_item_num(item_lines[4]))
-        r["ia4_dpp"]   = pick(ns, 0, 0)
-        r["ia4_ppn"]   = pick(ns, 1, 0)
+        r["ia4_dpp"] = pick(ns, 0, 0)
+        r["ia4_ppn"] = pick(ns, 1, 0)
         r["ia4_ppnbm"] = pick(ns, 2, 0)
 
     # I.A.5
     if 5 in item_lines:
         ns = numbers_on_line(strip_item_num(item_lines[5]))
         r["ia5_harga_jual"] = pick(ns, 0, 0)
-        r["ia5_dpp"]        = pick(ns, 1, 0)
-        r["ia5_ppn"]        = pick(ns, 2, 0)
-        r["ia5_ppnbm"]      = pick(ns, 3, 0)
+        r["ia5_dpp"] = pick(ns, 1, 0)
+        r["ia5_ppn"] = pick(ns, 2, 0)
+        r["ia5_ppnbm"] = pick(ns, 3, 0)
 
     # I.A.6
     if 6 in item_lines:
         ns = numbers_on_line(strip_item_num(item_lines[6]))
-        r["ia6_dpp"]   = pick(ns, 0, 0)
-        r["ia6_ppn"]   = pick(ns, 1, 0)
+        r["ia6_dpp"] = pick(ns, 0, 0)
+        r["ia6_ppn"] = pick(ns, 1, 0)
         r["ia6_ppnbm"] = pick(ns, 2, 0)
 
     # I.A.7
     if 7 in item_lines:
         ns = numbers_on_line(strip_item_num(item_lines[7]))
-        r["ia7_dpp"]   = pick(ns, 0, 0)
-        r["ia7_ppn"]   = pick(ns, 1, 0)
+        r["ia7_dpp"] = pick(ns, 0, 0)
+        r["ia7_ppn"] = pick(ns, 1, 0)
         r["ia7_ppnbm"] = pick(ns, 2, 0)
 
     # I.A.8
     if 8 in item_lines:
         ns = numbers_on_line(strip_item_num(item_lines[8]))
-        r["ia8_dpp"]   = pick(ns, 0, 0)
-        r["ia8_ppn"]   = pick(ns, 1, 0)
+        r["ia8_dpp"] = pick(ns, 0, 0)
+        r["ia8_ppn"] = pick(ns, 1, 0)
         r["ia8_ppnbm"] = pick(ns, 2, 0)
 
     # I.A.9
     if 9 in item_lines:
         ns = numbers_on_line(strip_item_num(item_lines[9]))
-        r["ia9_dpp"]   = pick(ns, 0, 0)
-        r["ia9_ppn"]   = pick(ns, 1, 0)
+        r["ia9_dpp"] = pick(ns, 0, 0)
+        r["ia9_ppn"] = pick(ns, 1, 0)
         r["ia9_ppnbm"] = pick(ns, 2, 0)
 
     for line in lines:
@@ -263,14 +272,14 @@ def process_spt_ppn(pdf_path):
             r["ia_jumlah_harga_jual"] = pick(ns, 0, 0)
             if len(ns) >= 4:
                 # All 4 columns present: harga_jual, dpp, ppn, ppnbm
-                r["ia_jumlah_dpp"]   = pick(ns, 1, 0)
-                r["ia_jumlah_ppn"]   = pick(ns, 2, 0)
+                r["ia_jumlah_dpp"] = pick(ns, 1, 0)
+                r["ia_jumlah_ppn"] = pick(ns, 2, 0)
                 r["ia_jumlah_ppnbm"] = pick(ns, 3, 0)
             else:
                 # pdfplumber drops the DPP column on this row; 3 values are
                 # harga_jual, ppn, ppnbm — compute dpp from individual items below
-                r["ia_jumlah_dpp"]   = None
-                r["ia_jumlah_ppn"]   = pick(ns, 1, 0)
+                r["ia_jumlah_dpp"] = None
+                r["ia_jumlah_ppn"] = pick(ns, 1, 0)
                 r["ia_jumlah_ppnbm"] = pick(ns, 2, 0)
             break
 
@@ -299,51 +308,65 @@ def process_spt_ppn(pdf_path):
 
         if re.search(r'II\.\s*A\.|Impor BKP.*Pemanfaatan BKP Tidak Berwujud', line, re.IGNORECASE):
             ns = numbers_on_line(combined)
-            r["iia_dpp"]   = pick(ns, 0, 0)
-            r["iia_ppn"]   = pick(ns, 1, 0)
+            r["iia_dpp"] = pick(ns, 0, 0)
+            r["iia_ppn"] = pick(ns, 1, 0)
             r["iia_ppnbm"] = pick(ns, 2, 0)
 
-        elif re.search(r'Perolehan BKP.JKP dari dalam negeri dengan DPP Nilai Lain', line, re.IGNORECASE):
+        elif re.search(
+                r'Perolehan BKP.JKP dari dalam negeri dengan DPP Nilai Lain',
+                line, re.IGNORECASE):
             ns = numbers_on_line(combined)
-            r["iib_harga_jual"]    = pick(ns, 0, 0)
-            r["iib_dpp_nilai_lain"]= pick(ns, 1, 0)
-            r["iib_ppn"]           = pick(ns, 2, 0)
-            r["iib_ppnbm"]         = pick(ns, 3, 0)
+            r["iib_harga_jual"] = pick(ns, 0, 0)
+            r["iib_dpp_nilai_lain"] = pick(ns, 1, 0)
+            r["iib_ppn"] = pick(ns, 2, 0)
+            r["iib_ppnbm"] = pick(ns, 3, 0)
 
-        elif re.search(r'Perolehan BKP.JKP dari dalam negeri selain dengan DPP Nilai Lain', line, re.IGNORECASE):
+        elif re.search(
+                r'Perolehan BKP.JKP dari dalam negeri selain dengan DPP Nilai Lain',
+                line, re.IGNORECASE):
             ns = numbers_on_line(combined)
-            r["iic_dpp"]   = pick(ns, 0, 0)
-            r["iic_ppn"]   = pick(ns, 1, 0)
+            r["iic_dpp"] = pick(ns, 0, 0)
+            r["iic_ppn"] = pick(ns, 1, 0)
             r["iic_ppnbm"] = pick(ns, 2, 0)
 
-        elif re.search(r'Perolehan BKP.JKP dari dalam negeri sebagai Pemungut PPN', line, re.IGNORECASE):
+        elif re.search(
+                r'Perolehan BKP.JKP dari dalam negeri sebagai Pemungut PPN',
+                line, re.IGNORECASE):
             ns = numbers_on_line(combined)
-            r["iid_dpp"]   = pick(ns, 0, 0)
-            r["iid_ppn"]   = pick(ns, 1, 0)
+            r["iid_dpp"] = pick(ns, 0, 0)
+            r["iid_ppn"] = pick(ns, 1, 0)
             r["iid_ppnbm"] = pick(ns, 2, 0)
 
         elif re.search(r'Kompensasi kelebihan Pajak Masukan', line, re.IGNORECASE):
             r["iie_kompensasi"] = last_number(line) or 0
 
-        elif re.search(r'Hasil penghitungan kembali Pajak Masukan', line, re.IGNORECASE) and not re.match(r'^\s*\d+\.', line):
+        elif (re.search(r'Hasil penghitungan kembali Pajak Masukan', line, re.IGNORECASE)
+              and not re.match(r'^\s*\d+\.', line)):
             # Exclude Section IX numbered list items (e.g. "2. Hasil Penghitungan...")
             # which match the same words but hold only the item number as a value.
             v = last_number(line)
             r["iif_penghitungan_kembali"] = v if v is not None else 0
 
-        elif re.search(r'Jumlah Pajak Masukan yang dapat diperhitungkan', line, re.IGNORECASE):
+        elif re.search(
+                r'Jumlah Pajak Masukan yang dapat diperhitungkan',
+                line, re.IGNORECASE):
             after = re.sub(r'^.*?\)', '', line)
             ns = numbers_on_line(after)
             r["iig_jumlah_dpp"] = pick(ns, 0, 0)
             r["iig_jumlah_ppn"] = pick(ns, 1, pick(ns, 0, 0))
 
-        elif re.search(r'Impor atau perolehan BKP.JKP yang Pajak Masukannya tidak dikreditkan', line, re.IGNORECASE):
+        elif re.search(
+                r'Impor atau perolehan BKP.JKP yang Pajak Masukannya tidak dikreditkan',
+                line, re.IGNORECASE):
             ns = numbers_on_line(combined)
-            r["iih_dpp"]   = pick(ns, 0, 0)
-            r["iih_ppn"]   = pick(ns, 1, 0)
+            r["iih_dpp"] = pick(ns, 0, 0)
+            r["iih_ppn"] = pick(ns, 1, 0)
             r["iih_ppnbm"] = pick(ns, 2, 0)
 
-        elif re.search(r'Impor atau perolehan BKP.JKP dengan Faktur Pajak yang dilaporkan secara digunggung', line, re.IGNORECASE):
+        elif re.search(
+                r'Impor atau perolehan BKP.JKP dengan Faktur Pajak'
+                r' yang dilaporkan secara digunggung',
+                line, re.IGNORECASE):
             r["iii_dpp"] = last_number(line) or 0
 
         elif re.search(r'Jumlah perolehan \(II\.A \+ II\.B', line, re.IGNORECASE):
@@ -361,16 +384,21 @@ def process_spt_ppn(pdf_path):
         elif re.search(r'Pajak Masukan yang dapat diperhitungkan \(II\.G\)', line, re.IGNORECASE):
             r["iii_c"] = last_number(line) or 0
 
-        elif re.search(r'Kelebihan pemungutan PPN oleh Pemungut PPN', line, re.IGNORECASE) and 'III' not in line[:10]:
+        elif (re.search(r'Kelebihan pemungutan PPN oleh Pemungut PPN', line, re.IGNORECASE)
+              and 'III' not in line[:10]):
             r["iii_d"] = last_number(line) or 0
 
         elif re.search(r'PPN kurang atau \(lebih\) bayar \(III\.A', line, re.IGNORECASE):
             r["iii_e"] = last_number(line)
 
-        elif re.search(r'PPN kurang atau \(lebih\) bayar pada SPT yang dibetulkan sebelumnya', line, re.IGNORECASE):
+        elif re.search(
+                r'PPN kurang atau \(lebih\) bayar pada SPT yang dibetulkan sebelumnya',
+                line, re.IGNORECASE):
             r["iii_f"] = last_number(line)
 
-        elif re.search(r'PPN kurang atau \(lebih\) bayar karena pembetulan SPT \(III\.E', line, re.IGNORECASE):
+        elif re.search(
+                r'PPN kurang atau \(lebih\) bayar karena pembetulan SPT \(III\.E',
+                line, re.IGNORECASE):
             r["iii_g"] = last_number(line)
 
         elif re.search(r'diminta untuk.*dikompensasikan', line, re.IGNORECASE):
@@ -403,17 +431,21 @@ def process_spt_ppn(pdf_path):
             r["vib_ppnbm"] = last_number(line) or 0
         elif re.search(r'PPnBM kurang atau \(lebih\) bayar \(VI\.A', line, re.IGNORECASE):
             r["vic_ppnbm"] = last_number(line)
-        elif re.search(r'PPnBM kurang atau \(lebih\) bayar pada SPT yang dibetulkan', line, re.IGNORECASE):
+        elif re.search(
+                r'PPnBM kurang atau \(lebih\) bayar pada SPT yang dibetulkan',
+                line, re.IGNORECASE):
             r["vid_ppnbm"] = last_number(line)
-        elif re.search(r'PPnBM kurang atau \(lebih\) bayar karena pembetulan SPT \(VI\.C', line, re.IGNORECASE):
+        elif re.search(
+                r'PPnBM kurang atau \(lebih\) bayar karena pembetulan SPT \(VI\.C',
+                line, re.IGNORECASE):
             r["vie_ppnbm"] = last_number(line)
 
     # ── SECTION VII ───────────────────────────────────────────────────────────
     for line in lines:
         if re.search(r'VII.*Jumlah PPN dan PPnBM yang dipungut', line, re.IGNORECASE):
             ns = numbers_on_line(line)
-            r["viia_dpp"]   = pick(ns, 0, 0)
-            r["viia_ppn"]   = pick(ns, 1, 0)
+            r["viia_dpp"] = pick(ns, 0, 0)
+            r["viia_ppn"] = pick(ns, 1, 0)
             r["viia_ppnbm"] = pick(ns, 2, 0)
             break
 
@@ -421,8 +453,8 @@ def process_spt_ppn(pdf_path):
     for line in lines:
         if re.search(r'VIII.*Jumlah PPN dan PPnBM yang dipungut', line, re.IGNORECASE):
             ns = numbers_on_line(line)
-            r["viiia_dpp"]   = pick(ns, 0, 0)
-            r["viiia_ppn"]   = pick(ns, 1, 0)
+            r["viiia_dpp"] = pick(ns, 0, 0)
+            r["viiia_ppn"] = pick(ns, 1, 0)
             r["viiia_ppnbm"] = pick(ns, 2, 0)
             break
 
@@ -462,7 +494,9 @@ def process_folder(folder_path):
             results.append({"file": pdf_file.name, "error": str(e)})
 
     elapsed = time.time() - t_start
-    print(f"\nSelesai: {len(results)} file diproses dalam {elapsed:.2f} detik ({elapsed/len(results):.2f} detik/file rata-rata)")
+    avg = elapsed / len(results)
+    print(f"\nSelesai: {len(results)} file diproses dalam {elapsed:.2f} detik "
+          f"({avg:.2f} detik/file rata-rata)")
     return results
 
 
@@ -628,7 +662,9 @@ if __name__ == "__main__":
     if not args:
         target = Path(_DEFAULT_FOLDER)
         if not target.is_dir():
-            print(f"Error: default folder '{_DEFAULT_FOLDER}' not found. Pass a folder or file path.")
+            print(
+                f"Error: default folder '{_DEFAULT_FOLDER}' not found. "
+                "Pass a folder or file path.")
             sys.exit(1)
     else:
         target = Path(args[0])
@@ -648,8 +684,8 @@ if __name__ == "__main__":
                 print(f"{k}: {v}")
     else:
         print(f"Error: '{target}' not found.")
-        print(f"Usage:")
+        print("Usage:")
         print(f"  No args : python ppn_extractor.py              (uses ./{_DEFAULT_FOLDER}/)")
-        print(f"  Folder  : python ppn_extractor.py <folder>   [--output out.xlsx]")
-        print(f"  Single  : python ppn_extractor.py <file.pdf> [--output out.xlsx]")
+        print("  Folder  : python ppn_extractor.py <folder>   [--output out.xlsx]")
+        print("  Single  : python ppn_extractor.py <file.pdf> [--output out.xlsx]")
         sys.exit(1)

@@ -27,6 +27,7 @@ def parse_amount(text):
     except ValueError:
         return None
 
+
 def numbers_on_line(line):
     nums = re.findall(r'-?[\d\.]+(?:,\d+)?', line)
     return [v for n in nums for v in [parse_amount(n)] if v is not None]
@@ -163,7 +164,10 @@ def process_spt_pph23(pdf_path):
     # ── HEADER ────────────────────────────────────────────────────────────────
     for i, line in enumerate(lines):
         # Masa Pajak  (e.g. "Januari 2025")
-        m = re.search(r'(Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)\s+(\d{4})', line, re.IGNORECASE)
+        m = re.search(
+            r'(Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September'
+            r'|Oktober|November|Desember)\s+(\d{4})',
+            line, re.IGNORECASE)
         if m and r["masa_pajak"] is None:
             r["masa_pajak"] = f"{m.group(1)} {m.group(2)}"
 
@@ -224,7 +228,8 @@ def process_spt_pph23(pdf_path):
 
     def extract_kjs_4(line):
         """Return [pemotongan, harus_disetor, telah_disetor, selisih] from a KJS line.
-        KJS lines have 5 values: Setor Sendiri | Pemotongan | Harus Disetor | Telah Disetor | Selisih
+        KJS lines have 5 values: Setor Sendiri | Pemotongan | Harus Disetor
+        | Telah Disetor | Selisih
         We skip index 0 (Setor Sendiri) and return indices 1-4."""
         clean = re.sub(r'\bKJS\b[^\d]*\d{6}[-\s]\d{3}\b', '', line, flags=re.IGNORECASE)
         nums = numbers_on_line(clean)
@@ -369,6 +374,7 @@ def process_spt_pph23(pdf_path):
 
 def process_folder(folder_path):
     folder_path = Path(folder_path)
+
     def _nat(p):
         import re as _re
         parts = _re.split(r"(\d+)", p.name.lower())
@@ -393,11 +399,9 @@ def process_folder(folder_path):
     return results
 
 
-
 # ── Column schema (3-row header) ───────────────────────────────────────────────
 # Each entry: (row1_group, row2_kjs, row3_label, dict_key, is_numeric)
 # row2_kjs = None  → cell merges rows 2+3 (INFO, TOTAL, OTHERS leaf cols)
-
 _KJS_LEAVES = ["Pemotongan", "Harus Disetor", "Telah Disetor", "Kurang/Lebih"]
 
 SCHEMA = []
@@ -413,54 +417,87 @@ for _lbl, _key in [
 ]:
     SCHEMA.append(("INFO WAJIB PAJAK", None, _lbl, _key, False))
 
-_TOTAL_LEAVES = ["Setor Sendiri", "Pemotongan", "DTP", "Harus Disetor", "Telah Disetor", "Kurang/Lebih"]
+_TOTAL_LEAVES = ["Setor Sendiri", "Pemotongan", "DTP",
+                 "Harus Disetor", "Telah Disetor", "Kurang/Lebih"]
 
 # PPh Pasal 4 ayat 2  — KJS sub-rows + Total
 for _kjs, _keys in [
-    ("KJS 411128-100", ["kjs_411128_100_pemotongan","kjs_411128_100_harus_disetor","kjs_411128_100_telah_disetor","kjs_411128_100_selisih"]),
-    ("KJS 411128-402", ["kjs_411128_402_pemotongan","kjs_411128_402_harus_disetor","kjs_411128_402_telah_disetor","kjs_411128_402_selisih"]),
-    ("KJS 411128-403", ["kjs_411128_403_pemotongan","kjs_411128_403_harus_disetor","kjs_411128_403_telah_disetor","kjs_411128_403_selisih"]),
+    ("KJS 411128-100", ["kjs_411128_100_pemotongan", "kjs_411128_100_harus_disetor",
+     "kjs_411128_100_telah_disetor", "kjs_411128_100_selisih"]),
+    ("KJS 411128-402", ["kjs_411128_402_pemotongan", "kjs_411128_402_harus_disetor",
+     "kjs_411128_402_telah_disetor", "kjs_411128_402_selisih"]),
+    ("KJS 411128-403", ["kjs_411128_403_pemotongan", "kjs_411128_403_harus_disetor",
+     "kjs_411128_403_telah_disetor", "kjs_411128_403_selisih"]),
 ]:
     for _leaf, _key in zip(_KJS_LEAVES, _keys):
         SCHEMA.append(("PPh Pasal 4 ayat 2", _kjs, _leaf, _key, True))
-for _leaf, _key in zip(_TOTAL_LEAVES, ["pph4a2_setor_sendiri","pph4a2_pemotongan","pph4a2_ditanggung_pemerintah","pph4a2_harus_disetor","pph4a2_telah_disetor","pph4a2_kurang_lebih_setor"]):
+for _leaf, _key in zip(_TOTAL_LEAVES, [
+    "pph4a2_setor_sendiri", "pph4a2_pemotongan", "pph4a2_ditanggung_pemerintah",
+    "pph4a2_harus_disetor", "pph4a2_telah_disetor", "pph4a2_kurang_lebih_setor",
+]):
     SCHEMA.append(("PPh Pasal 4 ayat 2", "Total", _leaf, _key, True))
 
 # PPh Pasal 15  — KJS sub-rows + Total
 for _kjs, _keys in [
-    ("KJS 411128-600", ["kjs_411128_600_pemotongan","kjs_411128_600_harus_disetor","kjs_411128_600_telah_disetor","kjs_411128_600_selisih"]),
-    ("KJS 411129-600", ["kjs_411129_600_pemotongan","kjs_411129_600_harus_disetor","kjs_411129_600_telah_disetor","kjs_411129_600_selisih"]),
+    ("KJS 411128-600", ["kjs_411128_600_pemotongan", "kjs_411128_600_harus_disetor",
+     "kjs_411128_600_telah_disetor", "kjs_411128_600_selisih"]),
+    ("KJS 411129-600", ["kjs_411129_600_pemotongan", "kjs_411129_600_harus_disetor",
+     "kjs_411129_600_telah_disetor", "kjs_411129_600_selisih"]),
 ]:
     for _leaf, _key in zip(_KJS_LEAVES, _keys):
         SCHEMA.append(("PPh Pasal 15", _kjs, _leaf, _key, True))
-for _leaf, _key in zip(_TOTAL_LEAVES, ["pph15_setor_sendiri","pph15_pemotongan","pph15_ditanggung_pemerintah","pph15_harus_disetor","pph15_telah_disetor","pph15_kurang_lebih_setor"]):
+for _leaf, _key in zip(_TOTAL_LEAVES, [
+    "pph15_setor_sendiri", "pph15_pemotongan", "pph15_ditanggung_pemerintah",
+    "pph15_harus_disetor", "pph15_telah_disetor", "pph15_kurang_lebih_setor",
+]):
     SCHEMA.append(("PPh Pasal 15", "Total", _leaf, _key, True))
 
 # PPh Pasal 22  — KJS sub-rows + Total
 for _kjs, _keys in [
-    ("KJS 411122-100", ["kjs_411122_100_pemotongan","kjs_411122_100_harus_disetor","kjs_411122_100_telah_disetor","kjs_411122_100_selisih"]),
-    ("KJS 411122-900", ["kjs_411122_900_pemotongan","kjs_411122_900_harus_disetor","kjs_411122_900_telah_disetor","kjs_411122_900_selisih"]),
-    ("KJS 411122-910", ["kjs_411122_910_pemotongan","kjs_411122_910_harus_disetor","kjs_411122_910_telah_disetor","kjs_411122_910_selisih"]),
+    ("KJS 411122-100", ["kjs_411122_100_pemotongan", "kjs_411122_100_harus_disetor",
+     "kjs_411122_100_telah_disetor", "kjs_411122_100_selisih"]),
+    ("KJS 411122-900", ["kjs_411122_900_pemotongan", "kjs_411122_900_harus_disetor",
+     "kjs_411122_900_telah_disetor", "kjs_411122_900_selisih"]),
+    ("KJS 411122-910", ["kjs_411122_910_pemotongan", "kjs_411122_910_harus_disetor",
+     "kjs_411122_910_telah_disetor", "kjs_411122_910_selisih"]),
 ]:
     for _leaf, _key in zip(_KJS_LEAVES, _keys):
         SCHEMA.append(("PPh Pasal 22", _kjs, _leaf, _key, True))
-for _leaf, _key in zip(_TOTAL_LEAVES, ["pph22_setor_sendiri","pph22_pemotongan","pph22_ditanggung_pemerintah","pph22_harus_disetor","pph22_telah_disetor","pph22_kurang_lebih_setor"]):
+for _leaf, _key in zip(_TOTAL_LEAVES, [
+    "pph22_setor_sendiri", "pph22_pemotongan", "pph22_ditanggung_pemerintah",
+    "pph22_harus_disetor", "pph22_telah_disetor", "pph22_kurang_lebih_setor",
+]):
     SCHEMA.append(("PPh Pasal 22", "Total", _leaf, _key, True))
 
 # PPh Pasal 23  — KJS sub-rows + Total
-for _leaf, _key in zip(_KJS_LEAVES, ["kjs_411124_100_pemotongan","kjs_411124_100_harus_disetor","kjs_411124_100_telah_disetor","kjs_411124_100_selisih"]):
+for _leaf, _key in zip(_KJS_LEAVES, [
+    "kjs_411124_100_pemotongan", "kjs_411124_100_harus_disetor",
+    "kjs_411124_100_telah_disetor", "kjs_411124_100_selisih",
+]):
     SCHEMA.append(("PPh Pasal 23", "KJS 411124-100", _leaf, _key, True))
-for _leaf, _key in zip(_TOTAL_LEAVES, ["pph23_setor_sendiri","pph23_pemotongan","pph23_ditanggung_pemerintah","pph23_harus_disetor","pph23_telah_disetor","pph23_kurang_lebih_setor"]):
+for _leaf, _key in zip(_TOTAL_LEAVES, [
+    "pph23_setor_sendiri", "pph23_pemotongan", "pph23_ditanggung_pemerintah",
+    "pph23_harus_disetor", "pph23_telah_disetor", "pph23_kurang_lebih_setor",
+]):
     SCHEMA.append(("PPh Pasal 23", "Total", _leaf, _key, True))
 
 # PPh Pasal 26  — KJS sub-rows + Total
-for _leaf, _key in zip(_KJS_LEAVES, ["kjs_411127_110_pemotongan","kjs_411127_110_harus_disetor","kjs_411127_110_telah_disetor","kjs_411127_110_selisih"]):
+for _leaf, _key in zip(_KJS_LEAVES, [
+    "kjs_411127_110_pemotongan", "kjs_411127_110_harus_disetor",
+    "kjs_411127_110_telah_disetor", "kjs_411127_110_selisih",
+]):
     SCHEMA.append(("PPh Pasal 26", "KJS 411127-110", _leaf, _key, True))
-for _leaf, _key in zip(_TOTAL_LEAVES, ["pph26_setor_sendiri","pph26_pemotongan","pph26_ditanggung_pemerintah","pph26_harus_disetor","pph26_telah_disetor","pph26_kurang_lebih_setor"]):
+for _leaf, _key in zip(_TOTAL_LEAVES, [
+    "pph26_setor_sendiri", "pph26_pemotongan", "pph26_ditanggung_pemerintah",
+    "pph26_harus_disetor", "pph26_telah_disetor", "pph26_kurang_lebih_setor",
+]):
     SCHEMA.append(("PPh Pasal 26", "Total", _leaf, _key, True))
 
 # Total Pajak Penghasilan
-for _leaf, _key in zip(_TOTAL_LEAVES[:5], ["total_setor_sendiri","total_pemotongan","total_ditanggung_pemerintah","total_harus_disetor","total_telah_disetor"]):
+for _leaf, _key in zip(_TOTAL_LEAVES[:5], [
+    "total_setor_sendiri", "total_pemotongan", "total_ditanggung_pemerintah",
+    "total_harus_disetor", "total_telah_disetor",
+]):
     SCHEMA.append(("TOTAL", None, _leaf, _key, True))
 
 # OTHERS
@@ -491,29 +528,29 @@ def export_to_excel(results, output_path):
     ws = wb.active
     ws.title = "SPT Masa PPh23"
 
-    thin   = Side(style='thin', color='BFBFBF')
+    thin = Side(style='thin', color='BFBFBF')
     border = Border(left=thin, right=thin, top=thin, bottom=thin)
 
     def _hdr(row, col, value, color, span_rows=1, span_cols=1):
         """Write a header cell and fill+border every cell in its merged range."""
         c = ws.cell(row=row, column=col, value=value)
-        c.font      = Font(name="Arial", bold=True, color="FFFFFF", size=8)
-        c.fill      = PatternFill("solid", start_color=color)
+        c.font = Font(name="Arial", bold=True, color="FFFFFF", size=8)
+        c.fill = PatternFill("solid", start_color=color)
         c.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-        c.border    = border
+        c.border = border
         # Apply fill+border to every cell covered by the merge so lines show correctly
         for r in range(row, row + span_rows):
             for cl in range(col, col + span_cols):
                 cell = ws.cell(row=r, column=cl)
-                cell.fill   = PatternFill("solid", start_color=color)
+                cell.fill = PatternFill("solid", start_color=color)
                 cell.border = border
         return c
 
     # ── Compute column spans ───────────────────────────────────────────────────
     # (group) spans for row 1
-    grp_span   = {}   # group → [first_col, last_col]
+    grp_span = {}   # group → [first_col, last_col]
     # (group, kjs) spans for row 2
-    kjs_span   = {}   # (group, kjs) → [first_col, last_col]
+    kjs_span = {}   # (group, kjs) → [first_col, last_col]
 
     for idx, (grp, kjs, lbl, key, is_num) in enumerate(SCHEMA):
         col = idx + 1
@@ -529,8 +566,8 @@ def export_to_excel(results, output_path):
 
     # Row 1 — group headers
     for grp, (sc, ec) in grp_span.items():
-        color  = _GROUP_COLORS.get(grp, "1F4E79")
-        ncols  = ec - sc + 1
+        color = _GROUP_COLORS.get(grp, "1F4E79")
+        ncols = ec - sc + 1
         if sc != ec:
             ws.merge_cells(f"{get_column_letter(sc)}1:{get_column_letter(ec)}1")
         _hdr(1, sc, grp, color, span_rows=1, span_cols=ncols)
@@ -553,7 +590,7 @@ def export_to_excel(results, output_path):
 
     # Row 3 — leaf labels
     for idx, (grp, kjs, lbl, key, is_num) in enumerate(SCHEMA):
-        col   = idx + 1
+        col = idx + 1
         color = _GROUP_COLORS.get(grp, "1F4E79")
         if kjs is None:
             # overwrite value into the r2 merged cell
@@ -566,16 +603,16 @@ def export_to_excel(results, output_path):
     DATA_START = 4
     for row_idx, record in enumerate(results, DATA_START):
         is_error = "error" in record
-        alt      = (row_idx % 2 == 0)
+        alt = (row_idx % 2 == 0)
         for idx, (grp, kjs, lbl, key, is_num) in enumerate(SCHEMA):
-            col   = idx + 1
+            col = idx + 1
             value = record.get(key)
-            cell  = ws.cell(row=row_idx, column=col, value=value)
-            cell.font   = Font(name="Arial", size=9)
+            cell = ws.cell(row=row_idx, column=col, value=value)
+            cell.font = Font(name="Arial", size=9)
             cell.border = border
             if is_num and value is not None and not is_error:
                 cell.number_format = NUMBER_FMT
-                cell.alignment     = Alignment(horizontal="right", vertical="center")
+                cell.alignment = Alignment(horizontal="right", vertical="center")
             else:
                 cell.alignment = Alignment(horizontal="left", vertical="center", wrap_text=False)
             if is_error:
@@ -585,21 +622,21 @@ def export_to_excel(results, output_path):
         ws.row_dimensions[row_idx].height = 16
 
     # ── Column widths ─────────────────────────────────────────────────────────
-    WIDE = {"file":26,"masa_pajak":13,"status_spt":11,"npwp":17,"nama":22,
-            "no_telepon":14,"penandatangan_nama":22,"tanggal_tanda_tangan":13}
+    WIDE = {"file": 26, "masa_pajak": 13, "status_spt": 11, "npwp": 17, "nama": 22,
+            "no_telepon": 14, "penandatangan_nama": 22, "tanggal_tanda_tangan": 13}
     for idx, (grp, kjs, lbl, key, is_num) in enumerate(SCHEMA):
         ws.column_dimensions[get_column_letter(idx+1)].width = WIDE.get(key, 13)
 
     ws.freeze_panes = f"G{DATA_START}"
 
     # ── Summary sheet ─────────────────────────────────────────────────────────
-    ws2  = wb.create_sheet("Ringkasan")
+    ws2 = wb.create_sheet("Ringkasan")
     thin2 = Side(style='thin', color='BFBFBF')
-    b2   = Border(left=thin2, right=thin2, top=thin2, bottom=thin2)
-    for c, h in enumerate(["Keterangan","Jumlah"], 1):
+    b2 = Border(left=thin2, right=thin2, top=thin2, bottom=thin2)
+    for c, h in enumerate(["Keterangan", "Jumlah"], 1):
         cell = ws2.cell(row=1, column=c, value=h)
-        cell.font  = Font(name="Arial", bold=True, color="FFFFFF")
-        cell.fill  = PatternFill("solid", start_color="1F4E79")
+        cell.font = Font(name="Arial", bold=True, color="FFFFFF")
+        cell.fill = PatternFill("solid", start_color="1F4E79")
         cell.alignment = Alignment(horizontal="center")
         cell.border = b2
     for ri, (label, val) in enumerate([
@@ -608,7 +645,7 @@ def export_to_excel(results, output_path):
         ("Gagal diproses",      sum(1 for r in results if "error" in r)),
     ], 2):
         ws2.cell(row=ri, column=1, value=label).font = Font(name="Arial")
-        ws2.cell(row=ri, column=2, value=val).font   = Font(name="Arial")
+        ws2.cell(row=ri, column=2, value=val).font = Font(name="Arial")
         for c in range(1, 3):
             ws2.cell(row=ri, column=c).border = b2
     ws2.column_dimensions["A"].width = 28
@@ -617,6 +654,7 @@ def export_to_excel(results, output_path):
     wb.save(output_path)
     print(f"Exported: {output_path}  ({len(results)} rows, {len(SCHEMA)} kolom)")
 # ── CLI ────────────────────────────────────────────────────────────────────────
+
 
 _DEFAULT_FOLDER = "PPH_23"
 
@@ -634,7 +672,9 @@ if __name__ == "__main__":
     if not args:
         target = Path(_DEFAULT_FOLDER)
         if not target.is_dir():
-            print(f"Error: default folder '{_DEFAULT_FOLDER}' not found. Pass a folder or file path.")
+            print(
+                f"Error: default folder '{_DEFAULT_FOLDER}' not found. "
+                "Pass a folder or file path.")
             sys.exit(1)
     else:
         target = Path(args[0])
@@ -654,9 +694,8 @@ if __name__ == "__main__":
                 print(f"{k}: {v}")
     else:
         print(f"Error: '{target}' not found.")
-        print(f"Usage:")
+        print("Usage:")
         print(f"  No args : python pph23_extractor.py              (uses ./{_DEFAULT_FOLDER}/)")
-        print(f"  Folder  : python pph23_extractor.py <folder>   [--output out.xlsx]")
-        print(f"  Single  : python pph23_extractor.py <file.pdf> [--output out.xlsx]")
+        print("  Folder  : python pph23_extractor.py <folder>   [--output out.xlsx]")
+        print("  Single  : python pph23_extractor.py <file.pdf> [--output out.xlsx]")
         sys.exit(1)
-        
