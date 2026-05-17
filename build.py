@@ -36,6 +36,7 @@ def build(target: str):
     cmd = [
         sys.executable, "-m", "nuitka",
         "--onefile",
+        "--assume-yes-for-downloads",
         "--windows-console-mode=force",
         f"--output-dir={OUTPUT_DIR}",
         f"--output-filename={name}.exe",
