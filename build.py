@@ -32,9 +32,7 @@ OUTPUT_DIR = "dist"
 
 # (target, output_name, is_gui)
 TARGETS = [
-    ("app.py",            "SPT_Extractor",    True),
-    ("pph23_extractor.py", "pph23_extractor", False),
-    ("ppn_extractor.py",   "ppn_extractor",   False),
+    ("app.py", "SPT_Extractor", True),
 ]
 
 
