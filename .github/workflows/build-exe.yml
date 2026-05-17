@@ -1,0 +1,33 @@
+name: Build Windows EXE
+
+on:
+  push:
+    branches: [improve-extractors, main]
+  workflow_dispatch:  # allows manual trigger from the Actions tab
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install pdfplumber openpyxl nuitka
+
+      - name: Build executables
+        run: python build.py
+
+      - name: Upload executables
+        uses: actions/upload-artifact@v4
+        with:
+          name: spt-extractors-windows
+          path: dist/*.exe
+          retention-days: 30
