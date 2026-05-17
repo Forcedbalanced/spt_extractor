@@ -30,7 +30,7 @@ OUTPUT_DIR = "dist"
 def build(target: str):
     name = Path(target).stem
     print(f"\n{'='*60}")
-    print(f"Building: {target}  →  {OUTPUT_DIR}/{name}.exe")
+    print(f"Building: {target}  ->  {OUTPUT_DIR}/{name}.exe")
     print("=" * 60)
 
     cmd = [
